@@ -1,0 +1,5 @@
+*.pyc
+*.json
+*.html
+*.log
+.DS_Store
