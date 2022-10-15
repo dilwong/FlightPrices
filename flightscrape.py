@@ -30,7 +30,7 @@ def collect_flight_data():
                         break
                     else:
                         return
-                except:
+                except Exception:
                     exceptionCounter += 1
                     print(f'Error detected at flight_day {flight_day} for departure {depart} and arrival {arrive}:')
                     traceback.print_exc()

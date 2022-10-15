@@ -3,3 +3,6 @@
 *.html
 *.log
 .DS_Store
+
+RawData/
+ExtractedData/
