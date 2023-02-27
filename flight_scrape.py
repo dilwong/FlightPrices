@@ -15,7 +15,13 @@ AIRPORTS_USA = ['ATL', 'DFW', 'DEN', 'ORD', 'LAX', 'CLT', 'MIA', 'JFK',
                 'EWR', 'SFO', 'DTW', 'BOS', 'PHL', 'LGA', 'IAD', 'OAK'
                ]
 
-AIRPORT_PAIRS = [pair for pair in itertools.product(AIRPORTS_USA, repeat = 2)
+# Brazil airports
+AIRPORTS_BR = ['RBR', 'MCZ', 'MCP', 'MAO', 'SSA', 'FOR', 'BSB', 'VIX', 'GYN', 'SLZ', 'CNF', 'CGR', 'CGB',
+               'BEL', 'JPA', 'REC', 'THE', 'NAT', 'POA', 'PVH', 'BVB', 'FLN', 'CGH', 'GRU', 'AJU', 'PMW', 'CWB'
+              ]
+
+AIRPORTS = AIRPORTS_USA
+AIRPORT_PAIRS = [pair for pair in itertools.product(AIRPORTS, repeat = 2)
                  if pair[0] != pair[1]]
 
 def collect_flight_data(today, hour, minute, departure_airport,
@@ -53,6 +59,9 @@ def collect_flight_data(today, hour, minute, departure_airport,
     exceptionCounter = 0
     while True:
         try:
+            URL = (f"https://www.expedia.com/api/flight/search?departureDate={flight_day}"
+                   f"&departureAirport={departure_airport}&arrivalAirport={arrival_airport}")
+            print(URL)
             
             filename = join("..", "data", f"today_{today}", f"hour_{hour}_minute_{minute}",
                             f"flight_day_{flight_day}", f"{departure_airport}_to_{arrival_airport}.json")
@@ -102,7 +111,7 @@ def collect_flight_data(today, hour, minute, departure_airport,
 
 
 def runner_collect_flight_data(max_additional_day=60, maxExceptions=20,
-                               n_jobs=-1, hour=None, minute=None):
+                               n_jobs=-1, hour=None, minute=None, overwrite_data=False):
     """ Runs collect_flight_data in parallel.
     Parameters
     ----------
@@ -119,6 +128,8 @@ def runner_collect_flight_data(max_additional_day=60, maxExceptions=20,
     minute: int (default=None)
         Minute in which function was called. If the value is None,
         the variable is calculated automatically
+    overwrite_data: bool (default=False)
+        If True overwrite already computed data, if False do not overwrite
     """
     today = date.today()
     now = datetime.now()
@@ -136,7 +147,9 @@ def runner_collect_flight_data(max_additional_day=60, maxExceptions=20,
             delayed_list.append(
                 delayed(collect_flight_data)(
                     today, hour, minute, departure_airport,
-                    arrival_airport, flight_day, maxExceptions
+                    arrival_airport, flight_day,
+                    maxExceptions=maxExceptions,
+                    overwrite_data=overwrite_data
                 )
             )
     Parallel(n_jobs=n_jobs , prefer="processes", verbose=1)(delayed_list)
@@ -145,5 +158,7 @@ if __name__ == "__main__":
     n_jobs=-1
     hour=None
     minute=None
-    runner_collect_flight_data(n_jobs=n_jobs, hour=hour, minute=minute)
+    overwrite_data=False
+    runner_collect_flight_data(n_jobs=n_jobs, hour=hour, minute=minute,
+                               overwrite_data=overwrite_data)
     print("Executed!\n\n")
