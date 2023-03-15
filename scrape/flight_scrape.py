@@ -28,10 +28,11 @@ AIRPORT_PAIRS = [pair for pair in itertools.product(AIRPORTS, repeat = 2)
 
 def collect_flight_data(today, hour, minute, departure_airport,
                         arrival_airport, flight_day,
-                        maxExceptions=20, overwrite_data=False):
+                        maxExceptions=20, overwrite_data=False,
+			path=""):
     """ Air ticket price web scraper.
 
-Collects the data and saves it in json format in the correct folder structure
+    Collects the data and saves it in json format in the correct folder structure
     Parameters
     ----------
     today: datetime.date
@@ -50,7 +51,8 @@ Collects the data and saves it in json format in the correct folder structure
         Maximum number of attempts to collect data
     overwrite_data: bool (default=False)
         If True overwrite already computed data, if False do not overwrite
-    
+    path: str
+	Directory where data should be saved
     Return
     ------
     success: bool
@@ -64,31 +66,31 @@ Collects the data and saves it in json format in the correct folder structure
             URL = (f"https://www.expedia.com/api/flight/search?departureDate={flight_day}"
                    f"&departureAirport={departure_airport}&arrivalAirport={arrival_airport}")
             print(URL)
-            
-            filename = join("..", "data", f"today_{today}", f"hour_{hour}_minute_{minute}",
+
+            filename = join(path, "data", f"today_{today}", f"hour_{hour}_minute_{minute}",
                             f"flight_day_{flight_day}", f"{departure_airport}_to_{arrival_airport}.json")
-            
+
             # Checks if the data has already been computed
             if isfile(filename) and not overwrite_data:
                 print("Data already computed")
                 success = None
                 break
-            
-            # Read the HTML of the webpage
+
+	    # Read the HTML of the webpage
             URL = (f"https://www.expedia.com/api/flight/search?departureDate={flight_day}"
                    f"&departureAirport={departure_airport}&arrivalAirport={arrival_airport}")
             request_json = requests.get(URL).json()
 
             # Recording the search time
             request_json["search_time"] = datetime.now().isoformat()
-            
+
             # Make directory
             makedirs(dirname(filename), exist_ok = True)
 
             # Saves the entire web page in json format
             with open(filename, 'w') as file:
                 json.dump(request_json, file)
-            
+
             print("SUCCESS" + "!"*20)
             success = True
             break
@@ -113,7 +115,8 @@ Collects the data and saves it in json format in the correct folder structure
 
 
 def runner_collect_flight_data(max_additional_day=60, maxExceptions=20,
-                               n_jobs=-1, hour=None, minute=None, overwrite_data=False):
+                               n_jobs=-1, hour=None, minute=None,
+			       overwrite_data=False, path=""):
     """ Runs collect_flight_data in parallel.
     Parameters
     ----------
@@ -132,17 +135,19 @@ def runner_collect_flight_data(max_additional_day=60, maxExceptions=20,
         the variable is calculated automatically
     overwrite_data: bool (default=False)
         If True overwrite already computed data, if False do not overwrite
+    path: str
+        Directory where data should be saved
     """
     today = date.today()
     now = datetime.now()
     flight_day_list = [today + timedelta(days = additional_day)
                        for additional_day in range(1, max_additional_day+1)]
-    
+
     if hour is None:
         hour = now.hour
     if minute is None:
         minute = now.minute
-    
+
     delayed_list = list()
     for flight_day in flight_day_list:
         for departure_airport, arrival_airport in AIRPORT_PAIRS:
@@ -151,16 +156,18 @@ def runner_collect_flight_data(max_additional_day=60, maxExceptions=20,
                     today, hour, minute, departure_airport,
                     arrival_airport, flight_day,
                     maxExceptions=maxExceptions,
-                    overwrite_data=overwrite_data
+                    overwrite_data=overwrite_data,
+		    path=path
                 )
             )
     Parallel(n_jobs=n_jobs , prefer="processes", verbose=1)(delayed_list)
 
 if __name__ == "__main__":
-    n_jobs=-1
-    hour=None
-    minute=None
-    overwrite_data=False
+    path = "/home/mborges"
+    n_jobs = -1
+    hour = None
+    minute = None
+    overwrite_data = False
     runner_collect_flight_data(n_jobs=n_jobs, hour=hour, minute=minute,
-                               overwrite_data=overwrite_data)
+                               overwrite_data=overwrite_data, path=path)
     print("Executed!\n\n")
