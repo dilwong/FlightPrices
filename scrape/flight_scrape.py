@@ -22,9 +22,12 @@ AIRPORTS_BR = ['RBR', 'MCZ', 'MCP', 'MAO', 'SSA', 'FOR', 'BSB', 'VIX', 'GYN',
                "GIG", "SDU"
 		]
 
-AIRPORTS = AIRPORTS_BR
+black_list = [("CGH", "GRU"), ("GRU", "CGH"), ("GIG", "SDU"), ("SDU", "GIG")]
+
+# Chosen airports
+AIRPORTS = ["BSB", "CGH", "GRU", "POA", "CNF", "GIG", "SDU", "SSA", "MAO"]
 AIRPORT_PAIRS = [pair for pair in itertools.product(AIRPORTS, repeat = 2)
-                 if pair[0] != pair[1]]
+                 if pair[0] != pair[1] and pair not in black_list]
 
 def collect_flight_data(today, hour, minute, departure_airport,
                         arrival_airport, flight_day,
