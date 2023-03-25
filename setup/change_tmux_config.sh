@@ -1,4 +1,4 @@
-# Setup built on a Fedora Linux distribution
+#!/bin/bash
 
 # Define the new key prefix
 echo "set-option -g prefix C-a" > ~/.tmux.conf
@@ -10,7 +10,7 @@ echo "unbind-key C-b" >> ~/.tmux.conf
 echo "bind-key C-a send-prefix" >> ~/.tmux.conf
 
 # Set the new horizontal split key
-echo "bind-key v split-window -h" > ~/.tmux.conf
+echo "bind-key v split-window -h" >> ~/.tmux.conf
 
 # Set the new vertical split key
 echo "bind-key h split-window -v" >> ~/.tmux.conf
@@ -19,7 +19,7 @@ echo "bind-key h split-window -v" >> ~/.tmux.conf
 echo "unbind-key %" >> ~/.tmux.conf
 
 # Unbind the " (double quote) character from the horizontal division command
-echo "unbind-key '\"'" >> ~/.tmux.conf
+echo 'unbind-key "\""' >> ~/.tmux.conf
 
 # Load the new `tmux` settings
 tmux source-file ~/.tmux.conf
