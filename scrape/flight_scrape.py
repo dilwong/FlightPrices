@@ -66,10 +66,6 @@ def collect_flight_data(today, hour, minute, departure_airport,
     exceptionCounter = 0
     while True:
         try:
-            URL = (f"https://www.expedia.com/api/flight/search?departureDate={flight_day}"
-                   f"&departureAirport={departure_airport}&arrivalAirport={arrival_airport}")
-            print(URL)
-
             filename = join(path, "data", f"today_{today}", f"hour_{hour}_minute_{minute}",
                             f"flight_day_{flight_day}", f"{departure_airport}_to_{arrival_airport}.json")
 
