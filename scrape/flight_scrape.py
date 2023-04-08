@@ -167,7 +167,7 @@ def runner_collect_flight_data(max_additional_day=60, maxExceptions=20,
 
 if __name__ == "__main__":
     path = "/home/mborges"
-    n_jobs = -1
+    n_jobs = 8
     hour = None
     minute = None
     overwrite_data = False
