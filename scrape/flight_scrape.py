@@ -9,6 +9,8 @@ from time import sleep, time
 import requests
 from joblib import Parallel, delayed
 
+from coordinate_scraper import CoordinateScraper 
+
 
 # United States of America airports
 AIRPORTS_USA = ['ATL', 'DFW', 'DEN', 'ORD', 'LAX', 'CLT', 'MIA', 'JFK',
@@ -167,6 +169,16 @@ if __name__ == "__main__":
     hour = None
     minute = None
     overwrite_data = False
-    runner_collect_flight_data(n_jobs=n_jobs, hour=hour, minute=minute,
-                               overwrite_data=overwrite_data, path=path)
-    print("Executed!\n\n")
+
+    machines_number = 3
+    machines_per_date = 2
+    machine_id = 1
+    now = datetime.now()
+
+    coordinate_scraper = CoordinateScraper(machines_number=machines_number,
+                                           machines_per_date=machines_per_date)
+    should_run = coordinate_scraper.check_should_run_hour(now, machine_id)
+    if should_run:
+        runner_collect_flight_data(n_jobs=n_jobs, hour=hour, minute=minute,
+                                   overwrite_data=overwrite_data, path=path)
+        print("Executed!\n\n")
