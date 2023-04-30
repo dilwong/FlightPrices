@@ -178,7 +178,10 @@ if __name__ == "__main__":
     coordinate_scraper = CoordinateScraper(machines_number=machines_number,
                                            machines_per_date=machines_per_date)
     should_run = coordinate_scraper.check_should_run_hour(now, machine_id)
+    print(f"should_run = {should_run}, start = {now}")
     if should_run:
         runner_collect_flight_data(n_jobs=n_jobs, hour=hour, minute=minute,
                                    overwrite_data=overwrite_data, path=path)
         print("Executed!\n\n")
+    end = datetime.now()
+    print(f"end = {end}")

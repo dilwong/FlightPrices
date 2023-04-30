@@ -1,5 +1,6 @@
 from datetime import datetime
 
+
 class CoordinateScraper():
     """Coordinates at what time each machine should collect data.
     
@@ -17,6 +18,9 @@ class CoordinateScraper():
         base_date: datetime.datetime (default=datetime(2000, 12, 11, 10, 27, 30))
             Base date, used as a reference to define which machine runs at what time.
         """
+        assert machines_per_date <= machines_number, ("machines_per_date must be "
+                                                      "less than or equal to machines_number")
+
         if base_date is None:
             self.base_date = datetime(2000, 12, 11, 10, 27, 30)
         else:
@@ -47,10 +51,12 @@ class CoordinateScraper():
         should_run = self.check_should_run_date(date, machine_id)
         if should_run:
             cycle_date_index = self.get_cycle_date_index(date)
+            cycle_date_index += 1
             day_hours = 24
             max_index = cycle_date_index * day_hours
             min_index = max_index - day_hours
             day_timesheet = self.get_timesheet()
+            day_timesheet = day_timesheet[min_index:max_index]
             should_run = day_timesheet[date.hour] == machine_id
         return should_run
         
@@ -89,11 +95,11 @@ class CoordinateScraper():
         ------
         cycle_date_index: int
             Day of the cycle that the date belongs to.
-            0 <= cycle_date_index < self.machines_number
+            0 <= cycle_date_index < len(self.get_complete_relay_cycle())
         """
         complete_relay_cycle = self.get_complete_relay_cycle()
         delta_time = date - self.base_date
-        cycle_date_index = delta_time.days % len(complete_relay_cycle) - 1
+        cycle_date_index = delta_time.days % len(complete_relay_cycle)
         return cycle_date_index
     
     def get_timesheet(self):
