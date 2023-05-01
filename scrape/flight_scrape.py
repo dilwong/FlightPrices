@@ -9,7 +9,8 @@ from time import sleep, time
 import requests
 from joblib import Parallel, delayed
 
-from coordinate_scraper import CoordinateScraper 
+from coordinate_scraper import CoordinateScraper
+from log_manager import LogManager
 
 
 # United States of America airports
@@ -164,7 +165,8 @@ def runner_collect_flight_data(max_additional_day=60, maxExceptions=20,
     Parallel(n_jobs=n_jobs , prefer="processes", verbose=1)(delayed_list)
 
 if __name__ == "__main__":
-    path = "/home/mborges"
+    path = join("/home","mborges")
+    production = True
     n_jobs = 8
     hour = None
     minute = None
@@ -185,3 +187,12 @@ if __name__ == "__main__":
         print("Executed!\n\n")
     end = datetime.now()
     print(f"end = {end}")
+    
+    if production:
+        log_path = join(path, "FlightPrices", "scrape", "log_scrapy.txt")
+        logs_folder = join(path, "logs")
+        log_manager = LogManager(execution_date=now,
+                                 log_path=log_path,
+                                 logs_folder=logs_folder)
+        log_manager.rename_and_move()
+        
