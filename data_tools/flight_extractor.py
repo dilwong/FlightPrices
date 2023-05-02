@@ -1,6 +1,7 @@
-from glob import glob
-import pandas as pd
 import json
+from glob import glob
+
+import pandas as pd
 from joblib import Parallel, delayed
 
 
@@ -10,11 +11,26 @@ class FlightExtractor():
         """
         Parameters
         ----------
+        json_paths: list[str]
+            List of json's path whose data should be structured.
         """
         self.json_paths = json_paths
         
     def structure_all_jsons(self, n_jobs=-1):
-        
+        """Structure all json's with parallel processing.
+
+        Parameters
+        ----------
+        n_jobs: int (default=-1, all cores)
+            Number of colors.
+    
+        Return
+        ------
+        structured_data: pd.DataFrame
+            All structured json's.
+        error_log_df: pd.DataFrame
+            The log of problems during data structuring.
+        """
         output_list = Parallel(n_jobs=n_jobs, prefer="processes", verbose=1)(
             [delayed(self._structure_json)(json_path) for json_path in self.json_paths]
         )
@@ -30,7 +46,20 @@ class FlightExtractor():
         return structured_data, error_log_df
 
     def _structure_json(self, json_path):
-        """Structure 1 json."""
+        """Structure one json data.
+        
+        Parameters
+        ----------
+        json_path: str
+            Json path whose data should be structured.
+    
+        Return
+        ------
+        structured_data: pd.DataFrame
+            Structured json data.
+        error_log_df: pd.DataFrame
+            The log of problems during data structuring.
+        """
         data, error_log_df = self._read_json(json_path)
         data, error_log_df = self._data_checks(data, json_path)
         
@@ -47,6 +76,43 @@ class FlightExtractor():
                 structured_data_list.append(pd.DataFrame(structured_data_dict))
             structured_data = pd.concat(structured_data_list)
         return structured_data, error_log_df
+    
+    def _read_json(self, json_path):
+        """Read json.
+
+        Parameters
+        ----------
+        json_path: str
+            Json path whose data should be structured.
+
+        Return
+        ------
+        data: dict
+            Json data.
+        error_log_df: pd.DataFrame
+            The log of problems during json reading.
+        """
+        try:
+            with open(json_path, 'r') as file:
+                data = json.load(file)
+            error_log_df = pd.DataFrame(columns=["json_path", "error_message"])
+
+        except json.JSONDecodeError:
+            data = None
+            error_log_df = pd.DataFrame({"json_path": json_path,
+                                         "error_message": "Unable to read json file"}
+            )
+        return data, error_log_df
+    
+    def _data_checks(self, data, json_path):
+        if data is not None:
+            error_log_df = pd.DataFrame(columns=["json_path", "error_message"])
+            if len(data['legs']) != len(data['offers']):
+                data = None
+                error_log_df = pd.DataFrame({"json_path": json_path,
+                                             "error_message": "Legs and offers not same length"}
+                )
+        return data, error_log_df
     
     def _structure_flight_information(self, flight_info):
         blocked_keys_flight = ['baggageFeesUrl'] + ['segments', 'freeCancellationBy']
@@ -125,27 +191,3 @@ class FlightExtractor():
                             structured_data_dict[key][0] + value + separator
                         ]
         return structured_data_dict
-    
-    def _read_json(self, json_path):
-        try:
-            with open(json_path, 'r') as file:
-                data = json.load(file)
-            error_log_df = pd.DataFrame(columns=["json_path", "error_message"])
-            
-        except json.JSONDecodeError:
-            data = None
-            error_log_df = pd.DataFrame({"json_path": json_path,
-                                         "error_message": "Unable to read json file"}
-            )
-        return data, error_log_df
-    
-    def _data_checks(self, data, json_path):
-        if data is not None:
-            error_log_df = pd.DataFrame(columns=["json_path", "error_message"])
-            if len(data['legs']) != len(data['offers']):
-                data = None
-                error_log_df = pd.DataFrame({"json_path": json_path,
-                                             "error_message": "Legs and offers not same length"}
-                )
-        return data, error_log_df
-        
