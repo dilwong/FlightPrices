@@ -4,6 +4,8 @@ from glob import glob
 import pandas as pd
 from joblib import Parallel, delayed
 
+from map_collected_data import extract_info_from_path
+
 
 class FlightExtractor():
     """Structure the data collected from flight_scrape.py."""
@@ -66,15 +68,30 @@ class FlightExtractor():
         structured_data = pd.DataFrame()
         
         if data is not None:
-            structured_data_list = list()
-            for flight_info, fare_info in zip(data['legs'], data['offers']):
-                is_the_same_flight = flight_info['legId'] == fare_info['legIds'][0]
-                if not is_the_same_flight:
-                    continue
-                structured_data_dict = self._structure_flight_information(flight_info)
-                structured_data_dict.update(self._structure_fare_information(fare_info))
-                structured_data_list.append(pd.DataFrame(structured_data_dict))
-            structured_data = pd.concat(structured_data_list)
+            try:
+                structured_data_list = list()
+                for flight_info, fare_info in zip(data['legs'], data['offers']):
+
+                    is_the_same_flight = flight_info['legId'] == fare_info['legIds'][0]
+                    if not is_the_same_flight:
+                        continue
+
+                    structured_flight_df = self._structure_flight_information(flight_info)
+                    structured_fare_df = self._structure_fare_information(fare_info)
+                    structured_df = pd.concat(
+                        [structured_flight_df, structured_fare_df], axis="columns"
+                    )
+                    structured_data_list.append(structured_df)
+                structured_data = pd.concat(structured_data_list, ignore_index=True)
+                structured_collect_df = self._structure_collect_information(data, json_path)
+                structured_collect_df = (
+                    structured_collect_df
+                    .loc[structured_collect_df.index.repeat(len(structured_data))]
+                    .reset_index(drop=True)
+                )
+                structured_data = pd.concat([structured_collect_df, structured_data], axis="columns")
+            except:
+                print("json_path", json_path)
         return structured_data, error_log_df
     
     def _read_json(self, json_path):
@@ -99,22 +116,63 @@ class FlightExtractor():
 
         except json.JSONDecodeError:
             data = None
-            error_log_df = pd.DataFrame({"json_path": json_path,
-                                         "error_message": "Unable to read json file"}
+            error_log_df = pd.DataFrame({"json_path": [json_path],
+                                         "error_message": ["Unable to read json file"]}
             )
         return data, error_log_df
     
     def _data_checks(self, data, json_path):
+        """Checks whether it is possible to extract information from the data.
+        
+        Parameters
+        ----------
+        data: dict
+            Json data.
+        json_path: str
+            Json path whose data should be structured.
+        
+        Return
+        ------
+        data: dict
+            Json data.
+        error_log_df: pd.DataFrame
+            The log of problems during data structuring.
+        """
         if data is not None:
-            error_log_df = pd.DataFrame(columns=["json_path", "error_message"])
-            if len(data['legs']) != len(data['offers']):
+            try:
+                necessary_keys = ["legs", "offers", "search_time", "searchCities"]
+                error_message = "The json does not have all the necessary keys"
+                for key in necessary_keys:
+                    assert key in data.keys(), error_message
+                
+                error_message = ("Legs and offers not same length, "
+                                 f"legs = {len(data['legs'])}; offers = {len(data['offers'])}")
+                assert len(data['legs']) == len(data['offers']), error_message
+                
+                
+                error_message = ("Legs or offers with len 0. "
+                                 f"legs = {len(data['legs'])}; offers = {len(data['offers'])}")
+                assert len(data['legs']) > 0 and len(data['offers']) > 0, error_message
+                                                
+                error_log_df = pd.DataFrame(columns=["json_path", "error_message"])
+            except:
                 data = None
-                error_log_df = pd.DataFrame({"json_path": json_path,
-                                             "error_message": "Legs and offers not same length"}
-                )
+                error_log_df = pd.DataFrame({"json_path": [json_path],
+                                             "error_message": [error_message]})
         return data, error_log_df
     
     def _structure_flight_information(self, flight_info):
+        """Structure flight information.
+        
+         Parameters
+        ----------
+        flight_info: dict
+            The information of each segment of the flight. data['legs']
+        Return
+        ------
+        structured_data_df:pd.DataFrame
+            Structured data
+        """
         blocked_keys_flight = ['baggageFeesUrl'] + ['segments', 'freeCancellationBy']
         structured_data_dict = {key: [flight_info.get(key)]
                                 for key in flight_info
@@ -138,11 +196,23 @@ class FlightExtractor():
                 if index == 0:
                     structured_data_dict[key] = [value + separator]
                 else:
-                    print()
                     structured_data_dict[key] = [structured_data_dict.get(key, [""])[0] + value + separator]
-        return structured_data_dict
+        structured_data_df = pd.DataFrame(structured_data_dict)
+        return structured_data_df
     
     def _structure_fare_information(self, fare_info):
+        """Structure fare information.
+        
+         Parameters
+        ----------
+        fare_info: dict
+            Information about flight fees. data['offers']
+        
+        Return
+        ------
+        structured_data_df:pd.DataFrame
+            Structured data
+        """
         keys_handled_separately = ["averageTotalPricePerTicket", "segmentAttributes",
                                    "loyaltyInfo", "flightFulfillmentMethod"]
         blocked_keys_fare = ["legIds", "baseFarePrice", "totalFarePrice", "totalPrice",
@@ -190,4 +260,41 @@ class FlightExtractor():
                         structured_data_dict[key] = [
                             structured_data_dict[key][0] + value + separator
                         ]
-        return structured_data_dict
+        structured_data_df = pd.DataFrame(structured_data_dict)
+        return structured_data_df
+    
+    def _structure_collect_information(self, data, json_path):
+        """Structure information about data collection.
+        
+         Parameters
+        ----------
+        data: dict
+            Json data.
+        json_path: str
+            Json path whose data should be structured.
+
+        Return
+        ------
+        structured_data_df:pd.DataFrame
+            Structured data
+        """
+        json_info_df = extract_info_from_path(json_path)
+        operational_search_time = (json_info_df.loc[0, "data_today"] + "T"
+                                   + json_info_df.loc[0, "hour"] + ":"
+                                   + json_info_df.loc[0, "minute"])
+
+        structured_data_dict = {
+            "search_time": [data.get("search_time")],
+            "operational_search_time":[operational_search_time],
+            "flight_day": [json_info_df.loc[0, "flight_day"]],
+
+            "origin_code": [data.get("searchCities", [{}])[0].get("code")],
+            "origin_city": [data.get("searchCities", [{}])[0].get("city")],
+            # "origin_country": [data.get('searchCities', [{}])[0].get("country")],
+
+            "destination_code": [data.get("searchCities", [{}])[-1].get("code")],
+            "destination_city": [data.get("searchCities", [{}])[-1].get("city")],
+            # "destination_country": [data.get('searchCities', [{}])[-1].get("country")],
+        }
+        structured_data_df = pd.DataFrame(structured_data_dict)
+        return structured_data_df
