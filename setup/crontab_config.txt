@@ -1,0 +1,3 @@
+# Run the command "crontab <path>/crontab_config.txt" or "crontab -a <path>/crontab_config.txt" to configure crontab
+0 * * * * sh /home/mborges/FlightPrices/scrape/run_scrape.sh >> /home/mborges/FlightPrices/scrape/log_scrapy.txt 2>&1
+0 12 * * * sh /home/mborges/FlightPrices/data_tools/run_flight_extractor.sh >> /home/mborges/FlightPrices/data_tools/log_flight_extractor.txt 2>&1
