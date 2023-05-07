@@ -3,7 +3,6 @@ from glob import glob
 
 import pandas as pd
 from joblib import Parallel, delayed
-
 from map_collected_data import extract_info_from_path
 
 
