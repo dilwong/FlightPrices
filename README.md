@@ -2,9 +2,7 @@
 
 ## Accessing the Data ##
 
-Data on one-way flights found on Expedia between 2022-04-16 and 2022-10-05 is available on [Kaggle](https://www.kaggle.com/datasets/dilwong/flightprices). The data is comes in three file formats: "itineraries.7z" contains a .csv file, "itineraries_gzip.parquet" is a gzip-compressed Apache Parquet file, and "itineraries_snappy.parquet" is a snappy-compressed Apache Parquet file. These three files contain the same data.
-
-The data contains the following information:
+Data on one-way flights found on Expedia between 2022-04-16 and 2022-10-05 is available on [Kaggle](https://www.kaggle.com/datasets/dilwong/flightprices). The data contains the following information:
 - legId: An identifier for the flight.
 - searchDate: The date (YYYY-MM-DD) on which this entry was taken from Expedia.
 - flightDate: The date (YYYY-MM-DD) of the flight.
